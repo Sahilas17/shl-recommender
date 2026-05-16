@@ -1,4 +1,3 @@
-```python
 """
 SHL Assessment Recommender — FastAPI Service
 
@@ -234,4 +233,3 @@ def chat_endpoint(req: ChatRequest):
             False
         )
     )
-```
