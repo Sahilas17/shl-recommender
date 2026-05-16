@@ -119,65 +119,157 @@ async def log_requests(request: Request, call_next):
 # ---------------------------------------------------------------------------
 # Homepage
 # ---------------------------------------------------------------------------
-
 @app.get("/", response_class=HTMLResponse)
 def home():
     return """
+    <!DOCTYPE html>
     <html>
-        <head>
-            <title>SHL Assessment Recommender</title>
-        </head>
+    <head>
+        <title>SHL Assessment Recommender</title>
 
-        <body style="
-            font-family: Arial;
-            background: #0f172a;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        ">
+        <style>
+            body {
+                font-family: Arial;
+                background: #0f172a;
+                color: white;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+            }
 
-            <div style="
-                text-align: center;
+            .container {
+                width: 700px;
                 background: #1e293b;
-                padding: 40px;
+                padding: 30px;
                 border-radius: 20px;
-                width: 500px;
                 box-shadow: 0 0 20px rgba(0,0,0,0.4);
-            ">
+            }
 
-                <h1 style="font-size: 36px;">
-                    SHL Assessment Recommender
-                </h1>
+            h1 {
+                text-align: center;
+            }
 
-                <p style="
-                    font-size: 18px;
-                    margin-top: 20px;
-                    color: #cbd5e1;
-                ">
-                    AI-powered recommendation system for SHL assessments.
-                </p>
+            #chatbox {
+                height: 400px;
+                overflow-y: auto;
+                background: #334155;
+                padding: 15px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+            }
 
-                <div style="
-                    margin-top: 30px;
-                    background: #334155;
-                    padding: 20px;
-                    border-radius: 12px;
-                ">
-                    <h3>Available Endpoints</h3>
+            input {
+                width: 80%;
+                padding: 12px;
+                border-radius: 10px;
+                border: none;
+                outline: none;
+                font-size: 16px;
+            }
 
-                    <p>GET /health</p>
-                    <p>POST /chat</p>
-                </div>
+            button {
+                width: 18%;
+                padding: 12px;
+                border: none;
+                border-radius: 10px;
+                background: #2563eb;
+                color: white;
+                font-size: 16px;
+                cursor: pointer;
+            }
 
-            </div>
+            .user {
+                color: #93c5fd;
+                margin-bottom: 10px;
+            }
 
-        </body>
+            .bot {
+                color: #86efac;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+
+    <body>
+
+        <div class="container">
+
+            <h1>SHL Assessment Recommender</h1>
+
+            <div id="chatbox"></div>
+
+            <input
+                type="text"
+                id="message"
+                placeholder="Describe the role you are hiring for..."
+            />
+
+            <button onclick="sendMessage()">
+                Send
+            </button>
+
+        </div>
+
+        <script>
+
+            let messages = [];
+
+            async function sendMessage() {
+
+                const input = document.getElementById("message");
+
+                const text = input.value;
+
+                if (!text) return;
+
+                const chatbox = document.getElementById("chatbox");
+
+                chatbox.innerHTML += `
+                    <div class="user">
+                        <b>You:</b> ${text}
+                    </div>
+                `;
+
+                messages.push({
+                    role: "user",
+                    content: text
+                });
+
+                input.value = "";
+
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        messages: messages
+                    })
+                });
+
+                const data = await response.json();
+
+                chatbox.innerHTML += `
+                    <div class="bot">
+                        <b>AI:</b> ${data.reply}
+                    </div>
+                `;
+
+                messages.push({
+                    role: "assistant",
+                    content: data.reply
+                });
+
+                chatbox.scrollTop = chatbox.scrollHeight;
+            }
+
+        </script>
+
+    </body>
     </html>
     """
-
 
 # ---------------------------------------------------------------------------
 # Health Endpoint
