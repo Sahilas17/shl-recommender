@@ -157,7 +157,7 @@ def chat(messages: list[dict]) -> dict:
         raise ValueError("GOOGLE_API_KEY environment variable not set. Please set it to your Google Gemini API key.")
     
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
         # Build a simple prompt for Gemini
     conversation = ""
