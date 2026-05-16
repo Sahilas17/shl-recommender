@@ -1,3 +1,4 @@
+```python
 """
 SHL Assessment Recommender — FastAPI Service
 
@@ -10,6 +11,7 @@ import logging
 import time
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, field_validator
 from typing import Optional
 from agent import chat
@@ -74,13 +76,15 @@ class ChatRequest(BaseModel):
             raise ValueError("messages cannot be empty")
         if len(v) > 20:
             raise ValueError("Too many messages (max 20)")
-        # Must start with a user message
         if v[0].role != "user":
             raise ValueError("First message must be from 'user'")
-        # Must alternate roles (user, assistant, user, ...)
+
         for i in range(1, len(v)):
             if v[i].role == v[i - 1].role:
-                raise ValueError(f"Messages must alternate roles. Got two '{v[i].role}' in a row at index {i}")
+                raise ValueError(
+                    f"Messages must alternate roles. Got two '{v[i].role}' in a row at index {i}"
+                )
+
         return v
 
 
@@ -105,12 +109,79 @@ async def log_requests(request: Request, call_next):
     start = time.time()
     response = await call_next(request)
     duration = time.time() - start
-    logger.info(f"{request.method} {request.url.path} → {response.status_code} ({duration:.2f}s)")
+
+    logger.info(
+        f"{request.method} {request.url.path} → {response.status_code} ({duration:.2f}s)"
+    )
+
     return response
 
 
 # ---------------------------------------------------------------------------
-# Endpoints
+# Homepage
+# ---------------------------------------------------------------------------
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return """
+    <html>
+        <head>
+            <title>SHL Assessment Recommender</title>
+        </head>
+
+        <body style="
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        ">
+
+            <div style="
+                text-align: center;
+                background: #1e293b;
+                padding: 40px;
+                border-radius: 20px;
+                width: 500px;
+                box-shadow: 0 0 20px rgba(0,0,0,0.4);
+            ">
+
+                <h1 style="font-size: 36px;">
+                    SHL Assessment Recommender
+                </h1>
+
+                <p style="
+                    font-size: 18px;
+                    margin-top: 20px;
+                    color: #cbd5e1;
+                ">
+                    AI-powered recommendation system for SHL assessments.
+                </p>
+
+                <div style="
+                    margin-top: 30px;
+                    background: #334155;
+                    padding: 20px;
+                    border-radius: 12px;
+                ">
+                    <h3>Available Endpoints</h3>
+
+                    <p>GET /health</p>
+                    <p>POST /chat</p>
+                </div>
+
+            </div>
+
+        </body>
+    </html>
+    """
+
+
+# ---------------------------------------------------------------------------
+# Health Endpoint
 # ---------------------------------------------------------------------------
 
 @app.get("/health")
@@ -119,18 +190,28 @@ def health():
     return {"status": "ok"}
 
 
+# ---------------------------------------------------------------------------
+# Chat Endpoint
+# ---------------------------------------------------------------------------
+
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(req: ChatRequest):
     """
-    Stateless chat endpoint. Caller passes the full conversation history.
-    Returns the agent's next reply and an optional structured shortlist.
+    Stateless chat endpoint.
+    Caller passes the full conversation history.
     """
-    messages = [{"role": m.role, "content": m.content} for m in req.messages]
+
+    messages = [
+        {"role": m.role, "content": m.content}
+        for m in req.messages
+    ]
 
     try:
         result = chat(messages)
+
     except Exception as e:
         logger.error(f"Agent error: {e}", exc_info=True)
+
         raise HTTPException(
             status_code=500,
             detail="Agent encountered an error. Please retry."
@@ -138,6 +219,7 @@ def chat_endpoint(req: ChatRequest):
 
     return ChatResponse(
         reply=result["reply"],
+
         recommendations=[
             Recommendation(
                 name=r["name"],
@@ -146,5 +228,10 @@ def chat_endpoint(req: ChatRequest):
             )
             for r in result.get("recommendations", [])
         ],
-        end_of_conversation=result.get("end_of_conversation", False)
+
+        end_of_conversation=result.get(
+            "end_of_conversation",
+            False
+        )
     )
+```
