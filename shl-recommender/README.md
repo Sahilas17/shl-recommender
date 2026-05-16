@@ -5,7 +5,7 @@ A conversational AI agent that helps hiring managers find the right SHL Individu
 ## Architecture
 
 ```
-User → POST /chat → FastAPI → Agent (Claude claude-sonnet-4-20250514) → Response + Recommendations
+User → POST /chat → FastAPI → Agent (Google Gemini 2.0 Flash) → Response + Recommendations
                                     ↑
                               TF-IDF Retrieval
                               (shl_catalog.json)
@@ -16,7 +16,7 @@ User → POST /chat → FastAPI → Agent (Claude claude-sonnet-4-20250514) → 
 | Decision | Choice | Why |
 |---|---|---|
 | Retrieval | TF-IDF (sklearn) | Zero external dependencies, no model download, fast startup, works offline, easily reproducible |
-| LLM | Claude claude-sonnet-4-20250514 | Best instruction-following, low hallucination rate for structured JSON output |
+| LLM | Google Gemini 2.0 Flash | Fast, cost-effective, good instruction-following, works well for structured JSON output |
 | State management | Stateless (caller sends full history) | Matches spec exactly; no server-side session storage |
 | Response format | Strict JSON from LLM | Deterministic schema validation; evaluator-safe |
 | URL validation | Allowlist check (`shl.com`) | Prevents hallucinated URLs from reaching the evaluator |
@@ -62,7 +62,7 @@ Returns `{"status": "ok"}` with HTTP 200.
 
 ### Prerequisites
 - Python 3.11+
-- An Anthropic API key
+- A Google Gemini API key (free tier available)
 
 ### Steps
 
@@ -74,8 +74,8 @@ cd shl-recommender
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Set your API key
-export ANTHROPIC_API_KEY=sk-ant-...
+# 3. Set your API key (get free key from https://aistudio.google.com/apikey)
+export GOOGLE_API_KEY=your_gemini_api_key_here
 
 # 4. Build the retrieval index (run once)
 python build_index.py
@@ -94,9 +94,9 @@ python tests.py
 2. Go to [render.com](https://render.com) → New → Web Service
 3. Connect your GitHub repo
 4. Configure:
-   - **Build Command:** `pip install -r requirements.txt && python build_index.py`
-   - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - **Environment Variable:** `ANTHROPIC_API_KEY` = your key
+    - **Build Command:** `pip install -r requirements.txt && python build_index.py`
+    - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
+    - **Environment Variable:** `GOOGLE_API_KEY` = your free key from [Google AI Studio](https://aistudio.google.com/apikey)
 5. Click Deploy
 6. Your service URL will be `https://shl-recommender-xxxx.onrender.com`
 
@@ -106,7 +106,7 @@ python tests.py
 
 ```bash
 docker build -t shl-recommender .
-docker run -p 8000:8000 -e ANTHROPIC_API_KEY=sk-ant-... shl-recommender
+docker run -p 8000:8000 -e GOOGLE_API_KEY=your_gemini_api_key shl-recommender
 ```
 
 ## Agent behaviors
@@ -139,4 +139,4 @@ uvicorn main:app --port 8000 &
 python tests.py
 ```
 
-Tests cover: health, vague query clarification, Java dev scenario, personality/leadership, multi-turn refinement, comparison questions, out-of-scope refusals, prompt injection, job description input, URL validation, and response time.
+Tests cover: health, vague query clarification, Java dev scenario, personality/leadership, multi-turn refinement, comparison questions, out-of-scope refusals, prompt injection, job description matching.
