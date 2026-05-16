@@ -159,26 +159,25 @@ def chat(messages: list[dict]) -> dict:
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-2.0-flash")
 
-    # Prepare messages for Gemini
-    # Gemini expects a different format, so we'll include the system prompt in the first user message
-    gemini_messages = []
+        # Build a simple prompt for Gemini
+    conversation = ""
+
     for msg in messages:
-        gemini_messages.append({
-            "role": "user" if msg["role"] == "user" else "model",
-            "parts": [msg["content"]]
-        })
-    
-    # Add the system prompt context to the final message
-    if gemini_messages:
-        # Insert system context before the last user message
-        gemini_messages.insert(0, {
-            "role": "user",
-            "parts": [full_system]
-        })
+        role = "User" if msg["role"] == "user" else "Assistant"
+        conversation += f"{role}: {msg['content']}\n"
+
+    final_prompt = f"""
+{full_system}
+
+Conversation History:
+{conversation}
+
+Respond ONLY with valid JSON.
+"""
 
     try:
         response = model.generate_content(
-            contents=gemini_messages,
+            final_prompt,
             generation_config={
                 "max_output_tokens": 1500,
                 "temperature": 0.7
