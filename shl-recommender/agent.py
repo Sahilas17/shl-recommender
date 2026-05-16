@@ -1,6 +1,6 @@
 """
 SHL Assessment Recommender Agent
-Uses TF-IDF retrieval + Claude claude-sonnet-4-20250514 for conversational recommendations.
+Uses TF-IDF retrieval + Google Gemini for conversational recommendations.
 """
 
 import os
@@ -9,7 +9,7 @@ import pickle
 import numpy as np
 import logging
 from sklearn.metrics.pairwise import cosine_similarity
-import anthropic
+import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ def build_catalog_context(retrieved: list[dict]) -> str:
 # System prompt
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """You are an expert SHL Assessment Recommender assistant. Your sole purpose is to help hiring managers and recruiters find the right SHL Individual Test Assessments from the SHL product catalog.
+SYSTEM_PROMPT = """You are an expert SHL Assessment Recommender assistant. Your sole purpose is to help hiring managers and recruiters find the right SHL Individual Test Assessments from the SHL portfolio.
 
 ## YOUR CAPABILITIES
 - Recommend SHL assessments based on job role, seniority, and skills to measure
@@ -151,17 +151,43 @@ def chat(messages: list[dict]) -> dict:
 
     full_system = SYSTEM_PROMPT + f"\n\n## CATALOG CONTEXT (use ONLY these for recommendations)\n{catalog_context}"
 
-    # Call Claude
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    # Configure Gemini API
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GOOGLE_API_KEY environment variable not set. Please set it to your Google Gemini API key.")
+    
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-2.0-flash")
 
-    response = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=1500,
-        system=full_system,
-        messages=messages
-    )
+    # Prepare messages for Gemini
+    # Gemini expects a different format, so we'll include the system prompt in the first user message
+    gemini_messages = []
+    for msg in messages:
+        gemini_messages.append({
+            "role": "user" if msg["role"] == "user" else "model",
+            "parts": [msg["content"]]
+        })
+    
+    # Add the system prompt context to the final message
+    if gemini_messages:
+        # Insert system context before the last user message
+        gemini_messages.insert(0, {
+            "role": "user",
+            "parts": [full_system]
+        })
 
-    raw_text = response.content[0].text.strip()
+    try:
+        response = model.generate_content(
+            contents=gemini_messages,
+            generation_config={
+                "max_output_tokens": 1500,
+                "temperature": 0.7
+            }
+        )
+        raw_text = response.text.strip()
+    except Exception as e:
+        logger.error(f"Gemini API error: {e}", exc_info=True)
+        raise
 
     # Parse JSON response — handle edge cases
     try:
