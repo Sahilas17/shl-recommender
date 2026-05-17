@@ -5,7 +5,7 @@ services:
     buildCommand: pip install -r requirements.txt && python build_index.py
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: ANTHROPIC_API_KEY
+      - key: GOOGLE_API_KEY
         sync: false   # Set this manually in the Render dashboard
     healthCheckPath: /health
     autoDeploy: true
