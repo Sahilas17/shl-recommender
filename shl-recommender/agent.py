@@ -156,11 +156,11 @@ def chat(messages: list[dict]) -> dict:
     if not api_key:
         raise ValueError("GOOGLE_API_KEY environment variable not set. Please set it to your Google Gemini API key.")
     
-   genai.configure(api_key=api_key)
+  genai.configure(api_key=api_key)
 model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
-        # Build a simple prompt for Gemini
-    conversation = ""
+# Build a simple prompt for Gemini
+conversation = ""
 
     for msg in messages:
         role = "User" if msg["role"] == "user" else "Assistant"
