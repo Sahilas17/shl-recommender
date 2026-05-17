@@ -216,6 +216,15 @@ def home():
 
             let messages = [];
 
+            function escapeHTML(str) {
+                return str.replace(/[&<>'"]/g, 
+                    tag => ({
+                        '&': '&amp;', '<': '&lt;', '>': '&gt;',
+                        "'": '&#39;', '"': '&quot;'
+                    }[tag])
+                );
+            }
+
             async function sendMessage() {
 
                 const input = document.getElementById("message");
@@ -228,7 +237,7 @@ def home():
 
                 chatbox.innerHTML += `
                     <div class="user">
-                        <b>You:</b> ${text}
+                        <b>You:</b> ${escapeHTML(text)}
                     </div>
                 `;
 
@@ -253,7 +262,7 @@ def home():
 
                 chatbox.innerHTML += `
                     <div class="bot">
-                        <b>AI:</b> ${data.reply}
+                        <b>AI:</b> ${escapeHTML(data.reply)}
                     </div>
                 `;
 

@@ -201,7 +201,8 @@ def chat(messages: list[dict]) -> dict:
     genai.configure(api_key=api_key)
 
     model = genai.GenerativeModel(
-        "gemini-1.5-flash-latest"
+        "gemini-2.0-flash",
+        system_instruction=full_system
     )
 
     # Build prompt
@@ -220,8 +221,6 @@ def chat(messages: list[dict]) -> dict:
         )
 
     final_prompt = f"""
-{full_system}
-
 Conversation History:
 {conversation}
 
@@ -234,7 +233,8 @@ Respond ONLY with valid JSON.
             final_prompt,
             generation_config={
                 "max_output_tokens": 1500,
-                "temperature": 0.7
+                "temperature": 0.7,
+                "response_mime_type": "application/json"
             }
         )
 
@@ -251,15 +251,6 @@ Respond ONLY with valid JSON.
 
     # Parse JSON response
     try:
-
-        if raw_text.startswith("```"):
-
-            raw_text = raw_text.split("```")[1]
-
-            if raw_text.startswith("json"):
-                raw_text = raw_text[4:]
-
-            raw_text = raw_text.strip()
 
         result = json.loads(raw_text)
 
@@ -299,7 +290,7 @@ Respond ONLY with valid JSON.
 
                 url = rec.get("url", "")
 
-                if "shl.com" in url:
+                if url.startswith("https://www.shl.com/"):
 
                     recommendations.append({
                         "name": str(rec["name"]),
